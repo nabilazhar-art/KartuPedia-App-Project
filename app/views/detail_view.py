@@ -7,6 +7,7 @@ yang bisa berubah reaktif (ikon hati) tanpa membangun ulang seluruh layar.
 import flet as ft
 
 from app.theme import get_palette, AppSpacing, AppRadius, AppTypography
+from app.components.tutorial_video_card import tutorial_video_card
 
 
 class DetailScreen:
@@ -119,41 +120,47 @@ class DetailScreen:
             on_click=self._toggle_favorite,
         )
 
-        locked = ft.Column(
-            spacing=AppSpacing.XS,
-            controls=[
-                ft.Text(g.category.upper(), size=AppTypography.META,
-                         weight=ft.FontWeight.BOLD, color=c.GOLD),
-                ft.Text(g.name, size=AppTypography.HERO, weight=ft.FontWeight.BOLD, color=c.TEXT),
-                ft.Text(g.description, size=AppTypography.BODY, color=c.TEXT_SECONDARY),
-                ft.Row(
-                    spacing=AppSpacing.LG,
-                    controls=[
-                        ft.Column(spacing=2, controls=[
-                            ft.Text(g.player_label(), size=AppTypography.BODY,
-                                     weight=ft.FontWeight.BOLD, color=c.TEXT),
-                            ft.Text("Pemain", size=AppTypography.META, color=c.TEXT_MUTED),
-                        ]),
-                        ft.Column(spacing=2, controls=[
-                            ft.Text(g.duration, size=AppTypography.BODY,
-                                     weight=ft.FontWeight.BOLD, color=c.TEXT),
-                            ft.Text("Durasi", size=AppTypography.META, color=c.TEXT_MUTED),
-                        ]),
-                        ft.Column(spacing=2, controls=[
-                            ft.Container(
-                                bgcolor=c.DIFFICULTY.get(g.difficulty, c.TEXT_MUTED),
-                                border_radius=AppRadius.PILL,
-                                padding=ft.Padding.symmetric(horizontal=AppSpacing.SM, vertical=2),
-                                content=ft.Text(g.difficulty, size=AppTypography.META,
-                                                  weight=ft.FontWeight.BOLD, color=c.WHITE),
-                            ),
-                            ft.Text("Difficulty", size=AppTypography.META, color=c.TEXT_MUTED),
-                        ]),
-                    ],
-                ),
-                ft.Divider(color=c.BORDER),
-            ],
-        )
+        # Elemen locked disusun sesuai urutan yang paling wajar dilihat user:
+        # video (paling menarik perhatian) -> identitas game -> metadata.
+        locked_controls = []
+        if g.tutorial_url:
+            locked_controls.append(tutorial_video_card(g, self.mode))
+            locked_controls.append(ft.Container(height=AppSpacing.XS))
+
+        locked_controls += [
+            ft.Text(g.category.upper(), size=AppTypography.META,
+                     weight=ft.FontWeight.BOLD, color=c.GOLD),
+            ft.Text(g.name, size=AppTypography.HERO, weight=ft.FontWeight.BOLD, color=c.TEXT),
+            ft.Text(g.description, size=AppTypography.BODY, color=c.TEXT_SECONDARY),
+            ft.Row(
+                spacing=AppSpacing.LG,
+                controls=[
+                    ft.Column(spacing=2, controls=[
+                        ft.Text(g.player_label(), size=AppTypography.BODY,
+                                 weight=ft.FontWeight.BOLD, color=c.TEXT),
+                        ft.Text("Pemain", size=AppTypography.META, color=c.TEXT_MUTED),
+                    ]),
+                    ft.Column(spacing=2, controls=[
+                        ft.Text(g.duration, size=AppTypography.BODY,
+                                 weight=ft.FontWeight.BOLD, color=c.TEXT),
+                        ft.Text("Durasi", size=AppTypography.META, color=c.TEXT_MUTED),
+                    ]),
+                    ft.Column(spacing=2, controls=[
+                        ft.Container(
+                            bgcolor=c.DIFFICULTY.get(g.difficulty, c.TEXT_MUTED),
+                            border_radius=AppRadius.PILL,
+                            padding=ft.Padding.symmetric(horizontal=AppSpacing.SM, vertical=2),
+                            content=ft.Text(g.difficulty, size=AppTypography.META,
+                                              weight=ft.FontWeight.BOLD, color=c.WHITE),
+                        ),
+                        ft.Text("Difficulty", size=AppTypography.META, color=c.TEXT_MUTED),
+                    ]),
+                ],
+            ),
+            ft.Divider(color=c.BORDER),
+        ]
+
+        locked = ft.Column(spacing=AppSpacing.XS, controls=locked_controls)
 
         sections = []
         if g.about:
