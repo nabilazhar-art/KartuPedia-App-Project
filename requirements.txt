@@ -1,9 +1,2 @@
-# Dipin (bukan >=) karena Flet masih sering merilis breaking change antar
-# minor version (0.86 -> 1.0.0 menghapus ElevatedButton, TextField.border_*,
-# dsb -- persis yang menyebabkan traceback Batch F2 & F3). Jalankan
-# `pip show flet` untuk lihat versi yang sekarang terpasang di .venv Anda,
-# lalu sesuaikan angka di bawah ini supaya cocok persis -- supaya
-# `pip install -r requirements.txt` di komputer lain/nanti tidak diam-diam
-# menarik versi lebih baru yang berpotensi merusak lagi.
-flet==1.0.0
+flet>=0.86.5
 flet-webview-all>=0.1.8

@@ -11,7 +11,7 @@ punya tombol back berfungsi, supaya semua interaksi tetap bisa dicoba.
 import flet as ft
 
 from app.config import APP_NAME
-from app.database import GAME_OBJECTS
+from app.database import GAME_OBJECTS, get_game_by_id
 from app.theme import get_palette, AppSpacing, AppTypography
 from app.utils import filter_games
 from app.views.home_view import build_home_view
@@ -19,6 +19,7 @@ from app.views.explore_view import build_explore_shell, build_chip_row, build_re
 from app.views.filter_screen import FilterScreen
 from app.views.favorite_view import build_favorite_view
 from app.views.about_view import build_about_view
+from app.views.detail_view import DetailScreen
 
 TABS = ["home", "explore", "favorite", "about"]
 TAB_TITLES = {"home": APP_NAME, "explore": "Jelajah", "favorite": "Favorit", "about": "Tentang"}
@@ -192,8 +193,8 @@ class AppShell:
             self._refresh_explore_results()
             self.page.update()
 
-        def handle_close():
-            self._pop_view(None)
+        async def handle_close(e=None):
+            await self._pop_view(e)
 
         screen = FilterScreen(self.page, self.mode(), self.explore_filters, handle_apply, handle_close)
         self.page.views.append(screen.build_view())
@@ -232,17 +233,26 @@ class AppShell:
         self.page.update()
 
     async def open_game(self, game_id: str):
-        await self._push_placeholder(f"Detail Game ({game_id})")
+        game = get_game_by_id(game_id)
+        if not game:
+            await self._push_placeholder(f"Game tidak ditemukan ({game_id})")
+            return
+        screen = DetailScreen(self.page, self.storage, self.mode(), game, on_close=self._pop_view)
+        view = await screen.build_view()
+        self.page.views.append(view)
+        self.page.update()
 
     async def open_finder(self):
         await self._push_placeholder("Game Finder")
 
     async def _handle_view_pop(self, e):
-        if len(self.page.views) > 1:
-            self.page.views.pop()
-            self.page.update()
+        await self._pop_view(e)
 
-    def _pop_view(self, e):
+    async def _pop_view(self, e):
         if len(self.page.views) > 1:
             self.page.views.pop()
+            # Refresh tab aktif setelah kembali -- mis. kalau user
+            # menekan/melepas favorit di Detail lalu kembali ke tab Favorit,
+            # daftarnya harus langsung ikut berubah, bukan basi.
+            await self._render_tab()
             self.page.update()

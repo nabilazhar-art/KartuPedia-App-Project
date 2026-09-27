@@ -50,6 +50,9 @@ def build_explore_shell(mode: str, query: str, results_container: ft.Control,
         color=c.TEXT,
         hint_style=ft.TextStyle(color=c.TEXT_MUTED),
         bgcolor=c.ELEVATED,
+        # border_radius/border_color/focused_border_color sudah deprecated di
+        # TextField (akan dihapus versi 1.3.0) -> dipindah ke OutlineInputBorder,
+        # dgn border beda warna per ControlState (default vs fokus).
         border={
             ft.ControlState.DEFAULT: ft.OutlineInputBorder(
                 border_radius=AppRadius.MD,

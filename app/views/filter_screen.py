@@ -69,9 +69,9 @@ class FilterScreen:
         self._render_body()
         self.page.update()
 
-    def _apply(self, e=None):
+    async def _apply(self, e=None):
         self.on_apply(self.selected)
-        self.on_close()
+        await self.on_close()
 
     def _render_body(self):
         c = get_palette(self.mode)
@@ -101,7 +101,7 @@ class FilterScreen:
                 title=ft.Text("Filter", color=c.TEXT, weight=ft.FontWeight.BOLD),
                 bgcolor=c.SURFACE,
                 leading=ft.IconButton(icon=ft.Icons.CLOSE_ROUNDED, icon_color=c.TEXT,
-                                       on_click=lambda e: self.on_close()),
+                                       on_click=self.on_close),
             ),
             controls=[
                 self.body_container,
