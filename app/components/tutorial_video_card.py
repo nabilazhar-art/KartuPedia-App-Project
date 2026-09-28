@@ -1,11 +1,8 @@
 """Kartu video tutorial YouTube: thumbnail 16:9 + overlay tombol play.
 
-Menyentuh kartu membuka video lewat browser/app YouTube di perangkat, pakai
-ft.UrlLauncher().launch_url() -- BUKAN page.launch_url() yang sudah
-deprecated (akan dihapus di Flet 1.0.0) atau webbrowser.open() bawaan Python
-yang salah sasaran saat aplikasi dijalankan sbg web (flet run --web): itu
-akan membuka browser di komputer SERVER, bukan di komputer yang melihat
-halaman webnya.
+Menyentuh kartu memanggil callback on_tap(game_id) -- oleh AppShell diarahkan
+ke layar pemutar (WebView, lihat views/tutorial_player_view.py). Kartu ini
+sendiri tidak tahu cara memutar video, jadi mudah dipakai ulang.
 """
 import flet as ft
 
@@ -15,12 +12,7 @@ from app.async_utils import async_handler
 THUMB_HEIGHT = 190
 
 
-async def _open_video(game):
-    if game.tutorial_url:
-        await ft.UrlLauncher().launch_url(game.tutorial_url)
-
-
-def tutorial_video_card(game, mode: str) -> ft.Control:
+def tutorial_video_card(game, mode: str, on_tap) -> ft.Control:
     c = get_palette(mode)
 
     thumbnail = ft.Container(
@@ -29,6 +21,9 @@ def tutorial_video_card(game, mode: str) -> ft.Control:
                                         bottom_left=0, bottom_right=0),
         bgcolor=c.ELEVATED,
         clip_behavior=ft.ClipBehavior.ANTI_ALIAS,
+        # Perbaikan dari user (hasil tes di Flet asli): di dalam Stack, anak
+        # tidak memakai expand=True, melainkan Stack.fit=EXPAND supaya gambar
+        # & overlay play memenuhi area thumbnail.
         content=ft.Stack(
             fit=ft.StackFit.EXPAND,
             controls=[
@@ -56,14 +51,14 @@ def tutorial_video_card(game, mode: str) -> ft.Control:
             spacing=AppSpacing.XS,
             controls=[
                 ft.Icon(ft.Icons.PLAY_CIRCLE_OUTLINE_ROUNDED, color=c.GOLD_LIGHT, size=16),
-                ft.Text("Tonton Tutorial di YouTube", size=AppTypography.CAPTION,
+                ft.Text("Tonton Tutorial", size=AppTypography.CAPTION,
                          weight=ft.FontWeight.BOLD, color=c.GOLD_LIGHT),
             ],
         ),
     )
 
     return ft.Container(
-        on_click=async_handler(_open_video, game),
+        on_click=async_handler(on_tap, game.id),
         ink=True,
         bgcolor=c.SURFACE,
         border=ft.Border.all(1, c.BORDER),

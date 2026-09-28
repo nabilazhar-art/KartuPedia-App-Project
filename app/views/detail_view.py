@@ -11,12 +11,13 @@ from app.components.tutorial_video_card import tutorial_video_card
 
 
 class DetailScreen:
-    def __init__(self, page: ft.Page, storage, mode: str, game, on_close):
+    def __init__(self, page: ft.Page, storage, mode: str, game, on_close, on_open_tutorial=None):
         self.page = page
         self.storage = storage
         self.mode = mode
         self.game = game
         self.on_close = on_close
+        self.on_open_tutorial = on_open_tutorial
         self.fav_icon_button = None
         self.is_favorite = False
 
@@ -120,14 +121,10 @@ class DetailScreen:
             on_click=self._toggle_favorite,
         )
 
-        # Elemen locked disusun sesuai urutan yang paling wajar dilihat user:
-        # video (paling menarik perhatian) -> identitas game -> metadata.
-        locked_controls = []
-        if g.tutorial_url:
-            locked_controls.append(tutorial_video_card(g, self.mode))
-            locked_controls.append(ft.Container(height=AppSpacing.XS))
-
-        locked_controls += [
+        # Blok locked sengaja DIJAGA RINGKAS (identitas + metadata saja). Kartu
+        # video tadinya di sini (F4b), tapi di layar HP area scroll jadi terlalu
+        # sempit untuk membaca aturan main -> dipindah ke awal area scroll.
+        locked_controls = [
             ft.Text(g.category.upper(), size=AppTypography.META,
                      weight=ft.FontWeight.BOLD, color=c.GOLD),
             ft.Text(g.name, size=AppTypography.HERO, weight=ft.FontWeight.BOLD, color=c.TEXT),
@@ -163,6 +160,8 @@ class DetailScreen:
         locked = ft.Column(spacing=AppSpacing.XS, controls=locked_controls)
 
         sections = []
+        if g.tutorial_url and self.on_open_tutorial:
+            sections.append(tutorial_video_card(g, self.mode, self.on_open_tutorial))
         if g.about:
             sections.append(self._section("Tentang", self._label(g.about, c.TEXT_SECONDARY)))
         if g.objective:

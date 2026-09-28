@@ -20,6 +20,8 @@ from app.views.filter_screen import FilterScreen
 from app.views.favorite_view import build_favorite_view
 from app.views.about_view import build_about_view
 from app.views.detail_view import DetailScreen
+from app.views.tutorial_player_view import build_tutorial_player_view
+from app.views.finder_view import FinderScreen
 
 TABS = ["home", "explore", "favorite", "about"]
 TAB_TITLES = {"home": APP_NAME, "explore": "Jelajah", "favorite": "Favorit", "about": "Tentang"}
@@ -237,13 +239,25 @@ class AppShell:
         if not game:
             await self._push_placeholder(f"Game tidak ditemukan ({game_id})")
             return
-        screen = DetailScreen(self.page, self.storage, self.mode(), game, on_close=self._pop_view)
+        screen = DetailScreen(self.page, self.storage, self.mode(), game,
+                              on_close=self._pop_view, on_open_tutorial=self.open_tutorial)
         view = await screen.build_view()
         self.page.views.append(view)
         self.page.update()
 
+    async def open_tutorial(self, game_id: str):
+        game = get_game_by_id(game_id)
+        if not game or not game.tutorial_url:
+            await self._push_placeholder("Video tutorial belum tersedia")
+            return
+        self.page.views.append(build_tutorial_player_view(self.mode(), game, on_close=self._pop_view))
+        self.page.update()
+
     async def open_finder(self):
-        await self._push_placeholder("Game Finder")
+        screen = FinderScreen(self.page, self.mode(), on_open_game=self.open_game,
+                              on_close=self._pop_view)
+        self.page.views.append(screen.build_view())
+        self.page.update()
 
     async def _handle_view_pop(self, e):
         await self._pop_view(e)
