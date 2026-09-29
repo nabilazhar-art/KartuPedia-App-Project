@@ -22,6 +22,7 @@ from app.views.about_view import build_about_view
 from app.views.detail_view import DetailScreen
 from app.views.tutorial_player_view import build_tutorial_player_view
 from app.views.finder_view import FinderScreen
+from app.views.random_view import RandomScreen
 
 TABS = ["home", "explore", "favorite", "about"]
 TAB_TITLES = {"home": APP_NAME, "explore": "Jelajah", "favorite": "Favorit", "about": "Tentang"}
@@ -100,6 +101,7 @@ class AppShell:
                 self.storage, self.mode(),
                 on_open_game=self.open_game,
                 on_open_finder=self.open_finder,
+                on_open_random=self.open_random,
                 on_open_category=self.open_category,
                 on_see_all_popular=self.see_all_popular,
             )
@@ -256,6 +258,12 @@ class AppShell:
     async def open_finder(self):
         screen = FinderScreen(self.page, self.mode(), on_open_game=self.open_game,
                               on_close=self._pop_view)
+        self.page.views.append(screen.build_view())
+        self.page.update()
+
+    async def open_random(self):
+        screen = RandomScreen(self.page, self.mode(), on_open_game=self.open_game,
+                               on_close=self._pop_view)
         self.page.views.append(screen.build_view())
         self.page.update()
 

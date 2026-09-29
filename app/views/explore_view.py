@@ -101,6 +101,7 @@ def build_results_list(results, mode: str, on_open_game) -> ft.Control:
     if not results:
         return ft.Column(
             expand=True,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
                 header,
                 empty_state(
@@ -113,6 +114,7 @@ def build_results_list(results, mode: str, on_open_game) -> ft.Control:
 
     return ft.Column(
         expand=True,
+        scroll=ft.ScrollMode.AUTO,
         spacing=AppSpacing.XS,
         controls=[header] + [
             game_list_tile(g, mode, on_tap=async_handler(on_open_game, g.id))

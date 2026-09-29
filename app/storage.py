@@ -24,7 +24,7 @@ FAVORITES_KEY = _PREFIX + "favorites"
 RECENT_KEY = _PREFIX + "recently_viewed"
 THEME_KEY = _PREFIX + "theme_mode"
 
-MAX_RECENTLY_VIEWED = 10
+MAX_RECENTLY_VIEWED = 5
 
 
 class Storage:
