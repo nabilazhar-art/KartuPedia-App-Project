@@ -68,4 +68,4 @@ versi. Beberapa hal yang perlu diperhatikan kalau mengembangkan lebih lanjut:
 
 ## Riwayat
 
-Proyek awalnya dibuat dengan menggunakan Kivy (lihat proyek `KartuPedia` versi kivy ada di branch yang sudah saya buat), yang kemudian dirombak total ke Flet untuk tampilan yang lebih modern.
+Proyek awalnya dibuat dengan menggunakan Kivy (proyek `KartuPedia` versi kivy ada di branch yang sudah saya buat), yang kemudian dirombak total ke Flet untuk tampilan yang lebih modern.
