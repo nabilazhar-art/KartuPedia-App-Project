@@ -2,7 +2,7 @@
 import os
 
 APP_NAME = "KartuPedia"
-APP_TAGLINE = "Temukan permainan. Pahami aturannya. Mulai bermain."
+APP_TAGLINE = "Your Guide to Card Games"
 APP_VERSION = "2.0.0"  # dinaikkan: versi Flet, desain baru
 
 # Root proyek = satu tingkat di atas folder paket "app".

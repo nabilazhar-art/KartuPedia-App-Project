@@ -52,10 +52,11 @@ class AppShell:
 
     # ---------- Siklus render ----------
 
-    async def mount(self):
-        """Dipanggil sekali di awal (dari main.py) untuk memasang shell pertama kali."""
-        self.page.views.clear()
-        self.page.views.append(ft.View(route="/", padding=0, controls=[self.content_area]))
+    async def mount(self, root: ft.View):
+        """Dipanggil sekali di awal (dari main.py): mengganti isi view root
+        (splash) dengan shell utama, tanpa membuang/membuat ulang view-nya."""
+        root.bgcolor = get_palette(self.mode()).BG
+        root.controls = [self.content_area]
         self.page.on_view_pop = self._handle_view_pop
         await self._render_chrome()
         await self._render_tab()
@@ -204,13 +205,13 @@ class AppShell:
         self.page.views.append(screen.build_view())
         self.page.update()
 
-    # ---------- Navigasi ke layar lain (placeholder utk yang belum dibangun) ----------
+    # ---------- Layar info/error singkat (game tidak ditemukan, dsb) ----------
 
-    async def _push_placeholder(self, title: str):
+    async def _push_message_screen(self, title: str, message: str):
         c = get_palette(self.mode())
         self.page.views.append(
             ft.View(
-                route=f"/placeholder/{len(self.page.views)}",
+                route=f"/message/{len(self.page.views)}",
                 bgcolor=c.BG,
                 appbar=ft.AppBar(
                     title=ft.Text(title, color=c.TEXT),
@@ -226,7 +227,7 @@ class AppShell:
                         alignment=ft.Alignment.CENTER,
                         padding=AppSpacing.LG,
                         content=ft.Text(
-                            f'Layar "{title}" akan dibangun di batch berikutnya.',
+                            message,
                             color=c.TEXT_SECONDARY, size=AppTypography.BODY,
                             text_align=ft.TextAlign.CENTER,
                         ),
@@ -239,7 +240,10 @@ class AppShell:
     async def open_game(self, game_id: str):
         game = get_game_by_id(game_id)
         if not game:
-            await self._push_placeholder(f"Game tidak ditemukan ({game_id})")
+            await self._push_message_screen(
+                "Game tidak ditemukan",
+                f"Game dengan id \"{game_id}\" tidak ada di database.",
+            )
             return
         screen = DetailScreen(self.page, self.storage, self.mode(), game,
                               on_close=self._pop_view, on_open_tutorial=self.open_tutorial)
@@ -250,7 +254,10 @@ class AppShell:
     async def open_tutorial(self, game_id: str):
         game = get_game_by_id(game_id)
         if not game or not game.tutorial_url:
-            await self._push_placeholder("Video tutorial belum tersedia")
+            await self._push_message_screen(
+                "Tutorial",
+                "Game ini belum memiliki video tutorial.",
+            )
             return
         self.page.views.append(build_tutorial_player_view(self.mode(), game, on_close=self._pop_view))
         self.page.update()

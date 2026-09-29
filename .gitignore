@@ -1,28 +1,15 @@
-# ==== Python ====
+# Python
 __pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-.eggs/
-
-# ==== Virtual environment ====
+*.pyc
+*.pyo
 .venv/
 venv/
-env/
 
-# ==== Flet build output ====
+# Build output Flet
 build/
-storage/
-.flet/
 
-# ==== IDE / editor ====
+# Editor / OS
 .vscode/
 .idea/
-*.swp
-
-# ==== OS junk ====
 .DS_Store
 Thumbs.db
-
-# ==== Env / secrets (kalau ada nanti) ====
-.env
