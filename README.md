@@ -1,6 +1,6 @@
 # KartuPedia (Flet)
 
-Ensiklopedia permainan kartu offline. Versi ini adalah hasil migrasi dari
+Ensiklopedia permainan kartu. Versi ini adalah hasil migrasi dari
 versi Kivy ke [Flet](https://flet.dev), dengan tampilan dirombak total ke
 gaya Material Design (Flutter) — bukan sekadar port 1:1.
 
@@ -14,7 +14,8 @@ gaya Material Design (Flutter) — bukan sekadar port 1:1.
 - **Random Game** — 3 pilihan acak sekaligus, dengan filter kategori opsional
 - **Detail Game** — aturan main lengkap, video tutorial YouTube
 - **Favorit** — daftar game yang ditandai favorit
-- **Tentang** — info aplikasi
+- **Pengaturan** — ringkasan statistik (favorit/dilihat), toggle tema, hapus
+  riwayat/favorit (dengan Undo), info aplikasi
 - Tema **Dark/Light** dengan toggle, tersimpan permanen
 - Video tutorial: diputar langsung di aplikasi (WebView) pada versi hasil
   `flet build`; di mode pengembangan (`flet run`) otomatis beralih ke

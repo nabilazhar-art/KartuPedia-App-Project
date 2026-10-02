@@ -1,1 +1,1 @@
-"""KartuPedia - Ensiklopedia Permainan Kartu Offline (versi Flet)."""
+"""KartuPedia - Ensiklopedia Permainan Kartu (versi Flet)."""

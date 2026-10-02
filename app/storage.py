@@ -35,12 +35,28 @@ class Storage:
         # tidak dipakai langsung oleh SharedPreferences.
         self.page = page
         self._prefs = ft.SharedPreferences()
+        # Cache di memori: data dibaca dari SharedPreferences sekali saja, lalu
+        # semua pembacaan berikutnya langsung dari memori (tanpa bolak-balik ke
+        # klien Flutter). Penulisan tetap diteruskan ke SharedPreferences, jadi
+        # format data yang tersimpan tidak berubah.
+        self._favs_cache = None
+        self._recent_cache = None
+        # Naik setiap kali favorit berubah; dipakai shell untuk tahu apakah tab
+        # Favorit perlu dibangun ulang setelah kembali dari layar lain.
+        self.favs_version = 0
 
     # ---------- Favorit ----------
 
     async def get_favorites(self) -> list:
-        favs = await self._prefs.get(FAVORITES_KEY)
-        return list(favs) if favs else []
+        if self._favs_cache is None:
+            favs = await self._prefs.get(FAVORITES_KEY)
+            self._favs_cache = list(favs) if favs else []
+        return list(self._favs_cache)
+
+    async def _save_favorites(self, favs: list):
+        self._favs_cache = list(favs)
+        self.favs_version += 1
+        await self._prefs.set(FAVORITES_KEY, list(favs))
 
     async def is_favorite(self, game_id: str) -> bool:
         return game_id in await self.get_favorites()
@@ -54,14 +70,27 @@ class Storage:
         else:
             favs.append(game_id)
             is_fav = True
-        await self._prefs.set(FAVORITES_KEY, favs)
+        await self._save_favorites(favs)
         return is_fav
+
+    async def clear_favorites(self):
+        await self._save_favorites([])
+
+    async def restore_favorites(self, ids: list):
+        """Dipakai tombol Undo di Pengaturan setelah 'Hapus Semua Favorit'."""
+        await self._save_favorites(list(ids))
 
     # ---------- Baru dilihat ----------
 
     async def get_recently_viewed(self) -> list:
-        recent = await self._prefs.get(RECENT_KEY)
-        return list(recent) if recent else []
+        if self._recent_cache is None:
+            recent = await self._prefs.get(RECENT_KEY)
+            self._recent_cache = list(recent) if recent else []
+        return list(self._recent_cache)
+
+    async def _save_recent(self, recent: list):
+        self._recent_cache = list(recent)
+        await self._prefs.set(RECENT_KEY, list(recent))
 
     async def add_recently_viewed(self, game_id: str):
         recent = await self.get_recently_viewed()
@@ -69,7 +98,14 @@ class Storage:
             recent.remove(game_id)
         recent.insert(0, game_id)
         del recent[MAX_RECENTLY_VIEWED:]
-        await self._prefs.set(RECENT_KEY, recent)
+        await self._save_recent(recent)
+
+    async def clear_recently_viewed(self):
+        await self._save_recent([])
+
+    async def restore_recently_viewed(self, ids: list):
+        """Dipakai tombol Undo di Pengaturan setelah 'Hapus Riwayat Dilihat'."""
+        await self._save_recent(list(ids))
 
     # ---------- Preferensi tema (dark/light) ----------
 

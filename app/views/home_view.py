@@ -14,8 +14,31 @@ from app.async_utils import async_handler
 _FEATURED_ID = "regicide"
 
 
+def fill_recent_section(holder: ft.Column, recent_games, mode: str, on_open_game):
+    """Isi (atau kosongkan) bagian "Baru Dilihat" di dalam wadah yang persisten.
+
+    Dipisah supaya saat kembali dari layar detail, hanya bagian ini yang
+    diperbarui -- bukan seluruh Beranda dibangun ulang.
+    """
+    if not recent_games:
+        holder.controls = []
+        return
+    holder.controls = [
+        ft.Container(height=AppSpacing.SM),
+        section_header("Baru Dilihat", mode),
+        ft.Column(
+            spacing=AppSpacing.XS,
+            controls=[
+                game_list_tile(g, mode, on_tap=async_handler(on_open_game, g.id))
+                for g in recent_games
+            ],
+        ),
+    ]
+
+
 async def build_home_view(storage, mode: str, on_open_game, on_open_finder,
-                           on_open_category, on_see_all_popular, on_open_random) -> ft.Control:
+                           on_open_category, on_see_all_popular, on_open_random,
+                           recent_holder: ft.Column = None) -> ft.Control:
     c = get_palette(mode)
 
     recent_ids = await storage.get_recently_viewed()
@@ -57,18 +80,10 @@ async def build_home_view(storage, mode: str, on_open_game, on_open_finder,
         ),
     ]
 
-    if recent_games:
-        sections += [
-            ft.Container(height=AppSpacing.SM),
-            section_header("Baru Dilihat", mode),
-            ft.Column(
-                spacing=AppSpacing.XS,
-                controls=[
-                    game_list_tile(g, mode, on_tap=async_handler(on_open_game, g.id))
-                    for g in recent_games
-                ],
-            ),
-        ]
+    if recent_holder is None:
+        recent_holder = ft.Column(spacing=0)
+    fill_recent_section(recent_holder, recent_games, mode, on_open_game)
+    sections.append(recent_holder)
 
     sections += [
         ft.Container(height=AppSpacing.SM),

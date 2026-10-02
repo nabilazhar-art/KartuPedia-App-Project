@@ -4,6 +4,8 @@ konten yang bisa di-scroll (aturan main, tips, dst).
 Ditulis sbg controller class (mirip FilterScreen) krn perlu state favorit
 yang bisa berubah reaktif (ikon hati) tanpa membangun ulang seluruh layar.
 """
+import asyncio
+
 import flet as ft
 
 from app.theme import get_palette, AppSpacing, AppRadius, AppTypography
@@ -106,11 +108,62 @@ class DetailScreen:
             )
         return ft.Column(spacing=AppSpacing.XS, controls=rows)
 
+    # ---------- Pengisian isi bertahap ----------
+
+    def _section_batches(self):
+        """Bagian-bagian detail, dibagi dua tahap: tahap 1 = yang terlihat
+        pertama (video, tentang, tujuan, persiapan); tahap 2 = sisanya."""
+        c = get_palette(self.mode)
+        g = self.game
+        first, rest = [], []
+        if g.tutorial_url and self.on_open_tutorial:
+            first.append(tutorial_video_card(g, self.mode, self.on_open_tutorial))
+        if g.about:
+            first.append(self._section("Tentang", self._label(g.about, c.TEXT_SECONDARY)))
+        if g.objective:
+            first.append(self._section("Tujuan", self._label(g.objective, c.TEXT_SECONDARY)))
+        if g.setup:
+            rest.append(self._section("Persiapan", self._label(g.setup, c.TEXT_SECONDARY)))
+        if g.how_to_play:
+            rest.append(self._section("Cara Bermain", self._numbered_list(g.how_to_play)))
+        if g.special_cards:
+            rest.append(self._section("Kartu Khusus", self._special_cards(g.special_cards)))
+        if g.ranking:
+            rest.append(self._section("Ranking", self._ranking(g.ranking)))
+        if g.scoring:
+            rest.append(self._section("Scoring", self._label(g.scoring, c.TEXT_SECONDARY)))
+        if g.tips:
+            rest.append(self._section("Tips", self._bullet_text(g.tips)))
+        if g.variations:
+            rest.append(self._section("Variasi", self._bullet_text(g.variations)))
+        if g.quick_guide:
+            rest.append(self._section("Panduan Cepat", self._numbered_list(g.quick_guide)))
+        rest.append(ft.Container(height=AppSpacing.XXL))
+        return first, rest
+
+    async def populate(self):
+        """Dipanggil SETELAH layar detail tampil: isi konten dalam dua tahap
+        supaya layar terasa langsung terbuka dan tidak tersendat."""
+        try:
+            await asyncio.sleep(0.05)  # beri waktu frame pertama tergambar
+            first, rest = self._section_batches()
+            self._scrollable.controls = first
+            self.page.update()
+            await asyncio.sleep(0.05)
+            self._scrollable.controls = first + rest
+            self.page.update()
+        except Exception:
+            # Layar mungkin sudah ditutup user sebelum selesai diisi.
+            pass
+
     # ---------- Bangun View ----------
 
     async def build_view(self) -> ft.View:
+        # Status favorit dibaca dari cache (cepat). Pencatatan "baru dilihat"
+        # TIDAK ditunggu: dijalankan di latar belakang supaya layar detail
+        # langsung tampil.
         self.is_favorite = await self.storage.is_favorite(self.game.id)
-        await self.storage.add_recently_viewed(self.game.id)
+        self.page.run_task(self.storage.add_recently_viewed, self.game.id)
 
         c = get_palette(self.mode)
         g = self.game
@@ -159,37 +212,22 @@ class DetailScreen:
 
         locked = ft.Column(spacing=AppSpacing.XS, controls=locked_controls)
 
-        sections = []
-        if g.tutorial_url and self.on_open_tutorial:
-            sections.append(tutorial_video_card(g, self.mode, self.on_open_tutorial))
-        if g.about:
-            sections.append(self._section("Tentang", self._label(g.about, c.TEXT_SECONDARY)))
-        if g.objective:
-            sections.append(self._section("Tujuan", self._label(g.objective, c.TEXT_SECONDARY)))
-        if g.setup:
-            sections.append(self._section("Persiapan", self._label(g.setup, c.TEXT_SECONDARY)))
-        if g.how_to_play:
-            sections.append(self._section("Cara Bermain", self._numbered_list(g.how_to_play)))
-        if g.special_cards:
-            sections.append(self._section("Kartu Khusus", self._special_cards(g.special_cards)))
-        if g.ranking:
-            sections.append(self._section("Ranking", self._ranking(g.ranking)))
-        if g.scoring:
-            sections.append(self._section("Scoring", self._label(g.scoring, c.TEXT_SECONDARY)))
-        if g.tips:
-            sections.append(self._section("Tips", self._bullet_text(g.tips)))
-        if g.variations:
-            sections.append(self._section("Variasi", self._bullet_text(g.variations)))
-        if g.quick_guide:
-            sections.append(self._section("Panduan Cepat", self._numbered_list(g.quick_guide)))
-        sections.append(ft.Container(height=AppSpacing.XXL))
-
-        scrollable = ft.Column(
+        # Isi berat (bagian-bagian aturan main) TIDAK dibangun di sini. Layar
+        # dibuka dulu hanya dengan header + indikator loading, lalu isinya diisi
+        # bertahap lewat populate() setelah layar tampil.
+        self._scrollable = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
             spacing=AppSpacing.LG,
-            controls=sections,
+            controls=[
+                ft.Container(
+                    alignment=ft.Alignment.CENTER,
+                    padding=AppSpacing.XL,
+                    content=ft.ProgressRing(width=28, height=28, stroke_width=3, color=c.PRIMARY),
+                )
+            ],
         )
+        scrollable = self._scrollable
 
         return ft.View(
             route=f"/detail/{g.id}",

@@ -44,7 +44,34 @@ class Game:
         """Link embed YouTube untuk diputar di WebView dalam aplikasi."""
         if not self.tutorial_youtube_id:
             return ""
-        return f"https://www.youtube.com/embed/{self.tutorial_youtube_id}?autoplay=1&playsinline=1"
+        return (
+            f"https://www.youtube.com/embed/{self.tutorial_youtube_id}"
+            "?autoplay=1&playsinline=1&rel=0&modestbranding=1"
+            "&origin=https://www.youtube.com"
+        )
+
+    @property
+    def tutorial_embed_html(self):
+        """Halaman HTML berisi iframe YouTube (dipakai untuk mengatasi Error 153).
+
+        Error 153 muncul kalau pemutar embed dimuat tanpa Referer. Iframe dengan
+        referrerpolicy eksplisit membuat WebView mengirim referrer ke YouTube.
+        """
+        if not self.tutorial_youtube_id:
+            return ""
+        return (
+            "<!doctype html><html><head>"
+            '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            '<meta name="referrer" content="strict-origin-when-cross-origin">'
+            "<style>html,body{margin:0;height:100%;background:#000}"
+            "iframe{position:absolute;inset:0;width:100%;height:100%;border:0}</style>"
+            "</head><body>"
+            f'<iframe src="{self.tutorial_embed_url}" '
+            'referrerpolicy="strict-origin-when-cross-origin" '
+            'allow="accelerometer; autoplay; clipboard-write; encrypted-media; '
+            'gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>'
+            "</body></html>"
+        )
 
     @property
     def tutorial_thumbnail_url(self):

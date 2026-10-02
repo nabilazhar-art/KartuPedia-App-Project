@@ -1,12 +1,11 @@
-"""Shell aplikasi: AppBar + NavigationBar (Beranda/Jelajah/Favorit/Tentang) di
-level page (persisten), dengan area konten yang berganti sesuai tab aktif.
+"""Shell aplikasi: AppBar + NavigationBar (Beranda/Jelajah/Favorit/Pengaturan)
+di level page (persisten), dengan area konten yang berganti sesuai tab aktif.
 
 page.navigation_bar & page.appbar dipasang SEKALI di level page (bukan per
 ft.View) -- ini pola resmi Flet untuk navigasi tab yang persisten. Rute "/"
 di page.views hanya berisi wadah konten (content_area) yang isinya ditukar
-saat pindah tab. Layar "tarik turun" sungguhan (Detail Game, Game Finder,
-dst -- belum dibangun sampai Batch F4/F5) masih memakai placeholder yang
-punya tombol back berfungsi, supaya semua interaksi tetap bisa dicoba.
+saat pindah tab. Layar "tarik turun" (Detail Game, Game Finder, Random,
+Filter, Tutorial) memakai page.views.append(...) terpisah, dgn tombol back.
 """
 import flet as ft
 
@@ -14,18 +13,18 @@ from app.config import APP_NAME
 from app.database import GAME_OBJECTS, get_game_by_id
 from app.theme import get_palette, AppSpacing, AppTypography
 from app.utils import filter_games
-from app.views.home_view import build_home_view
+from app.views.home_view import build_home_view, fill_recent_section
 from app.views.explore_view import build_explore_shell, build_chip_row, build_results_list
 from app.views.filter_screen import FilterScreen
 from app.views.favorite_view import build_favorite_view
-from app.views.about_view import build_about_view
+from app.views.settings_view import SettingsScreen
 from app.views.detail_view import DetailScreen
 from app.views.tutorial_player_view import build_tutorial_player_view
 from app.views.finder_view import FinderScreen
 from app.views.random_view import RandomScreen
 
-TABS = ["home", "explore", "favorite", "about"]
-TAB_TITLES = {"home": APP_NAME, "explore": "Jelajah", "favorite": "Favorit", "about": "Tentang"}
+TABS = ["home", "explore", "favorite", "settings"]
+TAB_TITLES = {"home": APP_NAME, "explore": "Jelajah", "favorite": "Favorit", "settings": "Pengaturan"}
 
 
 class AppShell:
@@ -36,6 +35,10 @@ class AppShell:
         self.storage = storage
         self.tab = "home"
         self.content_area = ft.Container(expand=True)
+        # Wadah "Baru Dilihat" persisten + penanda versi favorit yang terakhir
+        # dirender, supaya tombol kembali tidak perlu membangun ulang seluruh tab.
+        self.home_recent_holder = ft.Column(spacing=0)
+        self._fav_version_rendered = -1
 
         # State Jelajah (bertahan selama app hidup, sama seperti Screen instance
         # di versi Kivy yang menyimpan state-nya sendiri).
@@ -52,11 +55,10 @@ class AppShell:
 
     # ---------- Siklus render ----------
 
-    async def mount(self, root: ft.View):
-        """Dipanggil sekali di awal (dari main.py): mengganti isi view root
-        (splash) dengan shell utama, tanpa membuang/membuat ulang view-nya."""
-        root.bgcolor = get_palette(self.mode()).BG
-        root.controls = [self.content_area]
+    async def mount(self):
+        """Dipanggil sekali di awal (dari main.py) untuk memasang shell pertama kali."""
+        self.page.views.clear()
+        self.page.views.append(ft.View(route="/", padding=0, controls=[self.content_area]))
         self.page.on_view_pop = self._handle_view_pop
         await self._render_chrome()
         await self._render_tab()
@@ -84,7 +86,7 @@ class AppShell:
                 ft.NavigationBarDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME_ROUNDED, label="Beranda"),
                 ft.NavigationBarDestination(icon=ft.Icons.SEARCH_OUTLINED, selected_icon=ft.Icons.SEARCH_ROUNDED, label="Jelajah"),
                 ft.NavigationBarDestination(icon=ft.Icons.FAVORITE_BORDER_ROUNDED, selected_icon=ft.Icons.FAVORITE_ROUNDED, label="Favorit"),
-                ft.NavigationBarDestination(icon=ft.Icons.INFO_OUTLINE_ROUNDED, selected_icon=ft.Icons.INFO_ROUNDED, label="Tentang"),
+                ft.NavigationBarDestination(icon=ft.Icons.SETTINGS_OUTLINED, selected_icon=ft.Icons.SETTINGS_ROUNDED, label="Pengaturan"),
             ],
         )
         self.page.update()
@@ -105,17 +107,24 @@ class AppShell:
                 on_open_random=self.open_random,
                 on_open_category=self.open_category,
                 on_see_all_popular=self.see_all_popular,
+                recent_holder=self.home_recent_holder,
             )
         if self.tab == "explore":
             return self._build_explore_content()
         if self.tab == "favorite":
+            self._fav_version_rendered = self.storage.favs_version
             return await build_favorite_view(
                 self.storage, self.mode(),
                 on_open_game=self.open_game,
                 on_go_explore=self.see_all_popular,
             )
-        if self.tab == "about":
-            return build_about_view(self.mode())
+        if self.tab == "settings":
+            screen = SettingsScreen(
+                self.page, self.storage, self.mode(),
+                on_toggle_theme=self.toggle_theme,
+                on_data_changed=self._render_tab,
+            )
+            return await screen.build_content()
         return ft.Container()  # tidak akan tercapai; TABS sudah mencakup semua
 
     # ---------- Aksi umum ----------
@@ -238,6 +247,17 @@ class AppShell:
         self.page.update()
 
     async def open_game(self, game_id: str):
+        # Penahan ketukan ganda: selama satu layar detail sedang dibuka,
+        # ketukan berikutnya diabaikan (mencegah detail terbuka dua kali).
+        if getattr(self, "_opening_game", False):
+            return
+        self._opening_game = True
+        try:
+            await self._open_game(game_id)
+        finally:
+            self._opening_game = False
+
+    async def _open_game(self, game_id: str):
         game = get_game_by_id(game_id)
         if not game:
             await self._push_message_screen(
@@ -250,6 +270,8 @@ class AppShell:
         view = await screen.build_view()
         self.page.views.append(view)
         self.page.update()
+        # Isi detail dimuat bertahap setelah layar tampil (kurangi lag).
+        self.page.run_task(screen.populate)
 
     async def open_tutorial(self, game_id: str):
         game = get_game_by_id(game_id)
@@ -280,8 +302,15 @@ class AppShell:
     async def _pop_view(self, e):
         if len(self.page.views) > 1:
             self.page.views.pop()
-            # Refresh tab aktif setelah kembali -- mis. kalau user
-            # menekan/melepas favorit di Detail lalu kembali ke tab Favorit,
-            # daftarnya harus langsung ikut berubah, bukan basi.
-            await self._render_tab()
+            # Perbarui HANYA yang memang berubah, lalu satu kali page.update():
+            #  - Beranda: cukup bagian "Baru Dilihat"
+            #  - Favorit: dibangun ulang hanya kalau daftar favorit berubah
+            #  - Jelajah/Pengaturan: tidak perlu (state-nya tidak berubah di layar lain)
+            if self.tab == "home":
+                recent_ids = await self.storage.get_recently_viewed()
+                games = [g for g in (get_game_by_id(i) for i in recent_ids) if g]
+                fill_recent_section(self.home_recent_holder, games, self.mode(),
+                                    self.open_game)
+            elif self.tab == "favorite" and self._fav_version_rendered != self.storage.favs_version:
+                self.content_area.content = await self._build_tab_content()
             self.page.update()

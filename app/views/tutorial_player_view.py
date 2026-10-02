@@ -91,8 +91,7 @@ def _fallback_player(mode: str, game) -> ft.Control:
             controls=[
                 thumbnail,
                 ft.Text(
-                    "Pemutar di dalam aplikasi aktif di aplikasi hasil build "
-                    "(APK / Windows). Pada mode pengembangan, video dibuka di YouTube.",
+                    "Ketuk gambar atau tombol di bawah untuk menonton tutorial di YouTube.",
                     size=AppTypography.CAPTION, color=c.TEXT_SECONDARY,
                     text_align=ft.TextAlign.CENTER,
                 ),
@@ -108,6 +107,14 @@ def _fallback_player(mode: str, game) -> ft.Control:
     )
 
 
+def _build_webview(game) -> ft.Control:
+    """WebView YouTube. Mode "html" menghindari Error 153 (embed tanpa Referer)."""
+    mode = str(getattr(config, "YOUTUBE_EMBED_MODE", "html")).strip().lower()
+    if mode == "html":
+        return FletWebviewAll(html=game.tutorial_embed_html, expand=True)
+    return FletWebviewAll(url=game.tutorial_embed_url, expand=True)
+
+
 def build_tutorial_player_view(mode: str, game, on_close) -> ft.View:
     c = get_palette(mode)
     use_webview = _inapp_player_available() and bool(game.tutorial_embed_url)
@@ -116,7 +123,7 @@ def build_tutorial_player_view(mode: str, game, on_close) -> ft.View:
         player_area = ft.Container(
             expand=True,
             bgcolor="#000000",
-            content=FletWebviewAll(url=game.tutorial_embed_url, expand=True),
+            content=_build_webview(game),
         )
         bottom_bar = ft.Container(
             padding=ft.Padding.symmetric(horizontal=AppSpacing.LG, vertical=AppSpacing.SM),

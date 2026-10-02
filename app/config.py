@@ -21,4 +21,9 @@ WINDOW_HEIGHT = 860
 #   "auto" : WebView hanya dipakai di aplikasi hasil build (terdeteksi otomatis)
 #   "on"   : paksa pakai WebView (mis. setelah build klien sendiri)
 #   "off"  : selalu pakai tampilan cadangan (thumbnail + tombol YouTube)
-INAPP_VIDEO_MODE = "auto"
+INAPP_VIDEO_MODE = "off"  # YouTube Error 153 di WebView tidak bisa diatasi -> pakai thumbnail + tombol YouTube
+
+# Cara WebView memuat video (untuk mengatasi YouTube "Error 153"):
+#   "html" : muat halaman HTML berisi iframe + referrerpolicy (default, dicoba dulu)
+#   "url"  : muat URL embed langsung (perilaku lama)
+YOUTUBE_EMBED_MODE = "html"
