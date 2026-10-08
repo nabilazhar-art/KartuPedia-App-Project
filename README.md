@@ -29,8 +29,8 @@ python -m venv .venv
 .venv\Scripts\activate      # Windows
 pip install -r requirements.txt
 flet run --web main.py      # atau: flet run main.py (desktop)
-flet run --android main.py      # Android (memerlukan aplikasi flet di android)
-flet build apk -v      # menjadikan kodingan ke APK
+flet run --android main.py  # Android (memerlukan aplikasi flet di android)
+flet build apk -v           # menjadikan kodingan ke APK
 ```
 
 ## Struktur Proyek
